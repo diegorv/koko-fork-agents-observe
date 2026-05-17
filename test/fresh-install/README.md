@@ -4,7 +4,7 @@ Reproduces a pristine fresh-install environment and runs the real `claude` CLI a
 
 ## Why this exists
 
-The plugin auto-starts its Docker server container on first use via an MCP server Claude spawns when loading the plugin. When this fails on a user's machine (see [#6](https://github.com/simple10/agents-observe/issues/6)), reproducing it locally is hard — prior images, containers, and data directories contaminate the test. This harness runs everything inside an isolated `docker:dind` container so every run is pristine.
+The plugin auto-starts its Docker server container on first use via an MCP server Claude spawns when loading the plugin. When this fails on a user's machine (see [simple10/agents-observe#6](https://github.com/simple10/agents-observe/issues/6)), reproducing it locally is hard — prior images, containers, and data directories contaminate the test. This harness runs everything inside an isolated `docker:dind` container so every run is pristine.
 
 ## Usage
 

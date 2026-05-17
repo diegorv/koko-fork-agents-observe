@@ -246,9 +246,11 @@ describe('config', () => {
   it('constructs dockerImage from version', async () => {
     const cfg = await loadConfig()
     if (cfg.expectedVersion) {
-      expect(cfg.dockerImage).toBe(`ghcr.io/simple10/agents-observe:v${cfg.expectedVersion}`)
+      expect(cfg.dockerImage).toBe(
+        `ghcr.io/diegorv/koko-fork-agents-observe:v${cfg.expectedVersion}-fork.1`,
+      )
     } else {
-      expect(cfg.dockerImage).toBe('ghcr.io/simple10/agents-observe:latest')
+      expect(cfg.dockerImage).toBe('ghcr.io/diegorv/koko-fork-agents-observe:latest')
     }
   })
 
@@ -260,9 +262,9 @@ describe('config', () => {
 
   // --- Docker label ---
 
-  it('exposes dockerLabel with simple10 prefix', async () => {
+  it('exposes dockerLabel with fork prefix', async () => {
     const cfg = await loadConfig()
-    expect(cfg.dockerLabel).toBe('simple10-agents-observe.managed')
+    expect(cfg.dockerLabel).toBe('diegorv-koko-fork-agents-observe.managed')
   })
 
   // --- Test skip pull ---

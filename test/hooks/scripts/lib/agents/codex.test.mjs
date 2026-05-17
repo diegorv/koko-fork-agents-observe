@@ -55,7 +55,7 @@ describe('codex.getSessionInfo', () => {
           git: {
             commit_hash: 'abc',
             branch: 'feat/agent-class-support',
-            repository_url: 'git@github.com:simple10/agents-observe.git',
+            repository_url: 'git@github.com:diegorv/koko-fork-agents-observe.git',
           },
         },
       },
@@ -65,7 +65,7 @@ describe('codex.getSessionInfo', () => {
       slug: null,
       git: {
         branch: 'feat/agent-class-support',
-        repository_url: 'git@github.com:simple10/agents-observe.git',
+        repository_url: 'git@github.com:diegorv/koko-fork-agents-observe.git',
       },
     })
     rmSync(dir, { recursive: true, force: true })

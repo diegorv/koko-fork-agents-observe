@@ -71,7 +71,7 @@ export function getConfig(overrides = {}) {
   const version = readVersionFile(tmpConfig)
   const dockerImage =
     process.env.AGENTS_OBSERVE_DOCKER_IMAGE ||
-    `ghcr.io/simple10/agents-observe:${version ? `v${version}` : 'latest'}`
+    `ghcr.io/diegorv/koko-fork-agents-observe:${version ? `v${version}-fork.1` : 'latest'}`
 
   // Notification trigger list. Three states — preserve the distinction:
   //   undefined  → agent-lib falls back to its default (['Notification'])
@@ -153,7 +153,7 @@ export function getConfig(overrides = {}) {
     databaseFileName: 'observe.db',
 
     API_ID: 'agents-observe',
-    dockerLabel: 'simple10-agents-observe.managed',
+    dockerLabel: 'diegorv-koko-fork-agents-observe.managed',
     expectedVersion: version,
 
     /** Max ms to wait for server startup in hook-autostart before returning a timeout message */

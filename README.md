@@ -177,7 +177,7 @@ A few commonly used ones:
 | `AGENTS_OBSERVE_SERVER_PORT` | `4981` | Server port. |
 | `AGENTS_OBSERVE_BIND_HOST` | `127.0.0.1` (local) / `0.0.0.0` (docker container) | Server bind address. Set to `0.0.0.0` to expose the dashboard on the LAN. |
 | `AGENTS_OBSERVE_DOCKER_PUBLISH_HOST` | `127.0.0.1` | Host interface the Docker port-forward publishes on. Set to `0.0.0.0` to expose the dashboard on the LAN. |
-| `AGENTS_OBSERVE_DOCKER_IMAGE` | `ghcr.io/simple10/agents-observe:v<version>` | Override to use a local build, e.g. `agents-observe:local`, or your own published image. |
+| `AGENTS_OBSERVE_DOCKER_IMAGE` | `ghcr.io/diegorv/koko-fork-agents-observe:v<version>-fork.1` | Override to use a local build, e.g. `agents-observe:local`, or your own published image. |
 | `AGENTS_OBSERVE_NOTIFICATION_ON_EVENTS` | `Notification` | Comma-separated hook events that trigger the bell. Empty string disables bells. |
 | `AGENTS_OBSERVE_PROJECT_SLUG` | (auto-detected) | Project slug shown in the dashboard URL. If not set, derived from the session transcript path. |
 | `AGENTS_OBSERVE_API_BASE_URL` | `http://127.0.0.1:4981/api` | Full URL for the events endpoint. |
