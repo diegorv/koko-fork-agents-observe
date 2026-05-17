@@ -30,11 +30,20 @@ store.repairOrphans().then((result) => {
 })
 
 const app = createApp(store, broadcastToSession, broadcastToAll, broadcastActivity)
+const HOST = config.bindHost
 
 function start(retries = 3) {
-  const server = serve({ fetch: app.fetch, port: PORT }, () => {
-    console.log(`Server running on http://localhost:${PORT}`)
-    console.log(`POST events: http://localhost:${PORT}/api/events`)
+  const server = serve({ fetch: app.fetch, port: PORT, hostname: HOST }, () => {
+    console.log(`Server running on http://${HOST}:${PORT}`)
+    console.log(`POST events: http://${HOST}:${PORT}/api/events`)
+    if (HOST !== '0.0.0.0' && HOST !== '127.0.0.1' && HOST !== 'localhost') {
+      console.log(`Bound to custom host: ${HOST}`)
+    } else if (HOST === '0.0.0.0') {
+      console.log(
+        '[security] Server is reachable from any network interface. ' +
+          'Set AGENTS_OBSERVE_BIND_HOST=127.0.0.1 to restrict to localhost.',
+      )
+    }
   })
 
   ;(server as unknown as Server).on('error', (err: NodeJS.ErrnoException) => {

@@ -37,6 +37,12 @@ export const config = {
   isDev: process.env.AGENTS_OBSERVE_RUNTIME_DEV === '1',
   version: readVersion(),
   port: parseInt(process.env.AGENTS_OBSERVE_SERVER_PORT || '4981', 10),
+  // Bind host. Defaults: loopback for local runtime (safe for shared networks),
+  // all-interfaces for docker runtime (required for container port forwarding).
+  // Override with AGENTS_OBSERVE_BIND_HOST=0.0.0.0 to opt into LAN exposure.
+  bindHost:
+    process.env.AGENTS_OBSERVE_BIND_HOST ||
+    (detectRuntime() === 'docker' ? '0.0.0.0' : '127.0.0.1'),
   logLevel,
   verbose: logLevel === 'debug' || logLevel === 'trace',
   dbPath: resolve(process.env.AGENTS_OBSERVE_DB_PATH || '../../data/observe.db'),
