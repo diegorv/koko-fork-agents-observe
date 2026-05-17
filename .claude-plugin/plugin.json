@@ -1,6 +1,6 @@
 {
   "name": "koko-fork-agents-observe",
-  "version": "0.9.7",
+  "version": "1.0.0",
   "description": "Real-time observability dashboard for Claude Code agents (hardened fork of simple10/agents-observe)",
   "author": {
     "name": "diegorv"

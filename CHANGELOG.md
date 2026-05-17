@@ -1,5 +1,24 @@
 # Changelog
 
+## v1.0.0 — Hardening release: server stability, WS observability, CI
+
+Focused on backend robustness with defensive fixes across the API server, WebSocket layer, and hook scripts. Adds CI automation via Dependabot and pins the Node toolchain for reproducible builds. Major version bump signals the first release of this fork that has been audited end-to-end and patched against the P0 findings; no breaking API changes.
+
+### Fixes
+
+- Validate and cap `parseInt` query params on `/sessions` endpoints; `?limit` is clamped to 500 and `NaN`/negative inputs are rejected with 400 instead of being forwarded to SQLite.
+- Tolerate corrupt JSON in event rows (`payload`, `_meta`, `metadata`): a single bad row no longer crashes the whole list endpoint; the row drops to `null` with a one-line warn that includes its id.
+- Build admin backup paths safely. The previous `dbPath.replace(/\.db$/, ...)` could copy the live DB onto itself when the path lacked a `.db` suffix, risking data loss right before `clearAllData`. Backup name is now composed from `basename`/`extname` and a `resolve()` collision check refuses to proceed if the two paths collide.
+- Log malformed WebSocket JSON parses (server and client) instead of silently swallowing them. Pure `parseClientMessage` / `parseWsMessage` helpers extracted so the parse path is unit-tested.
+- Exit cleanly on `repairOrphans` rejection at startup. The server no longer starts and serves traffic on top of an unrepaired DB.
+- Guard `hook.sh` against missing `node` and unreadable `observe_cli.mjs`. Failures now write a breadcrumb to `~/.claude/logs/observe-hook.log` (override via `AGENTS_OBSERVE_HOOK_LOG`) instead of silently exiting 0.
+
+### Other
+
+- CI: configure Dependabot for npm (root, `app/server`, `app/client`), Docker, and GitHub Actions; previous config shipped with an empty `package-ecosystem` and monitored nothing. Guard test fails if the stub regresses.
+- Docs: add `docs/audit-report.html`, a self-contained static report of the read-only audit that produced this release.
+- Tests: 23 new tests across server, client, and scripts (now 802 total) covering the helpers and regression cases for every fix above.
+
 ## v0.9.6 — Hook path fix and test isolation
 
 This release fixes the UserPromptExpansion hook so it resolves correctly from the plugin root, and hardens the config test suite so it no longer depends on a real plugin install.
