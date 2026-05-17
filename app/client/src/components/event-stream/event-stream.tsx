@@ -9,6 +9,7 @@ import { getTimelineScrollTo, registerEventStreamScroll, withSyncLock } from '@/
 import { api } from '@/lib/api-client'
 import { useUIStore } from '@/stores/ui-store'
 import { EventRow } from './event-row'
+import { EventSearch } from '@/components/main-panel/event-search'
 import { TimestampTooltipProvider } from './timestamp-tooltip'
 import { format } from 'timeago.js'
 import { buildAgentColorMap } from '@/lib/agent-utils'
@@ -407,6 +408,9 @@ export function EventStream() {
                   {format(firstTs)} — {format(lastTs)}
                 </span>
               )}
+              <div className="ml-auto">
+                <EventSearch />
+              </div>
             </div>
             <div
               ref={scrollRef}
