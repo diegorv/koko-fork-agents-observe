@@ -30,7 +30,7 @@ export function SessionBreadcrumb() {
   const transcriptPath = session.transcriptPath || null
 
   return (
-    <div className="group/breadcrumb flex items-center gap-1.5 px-3 py-1 border-b border-border text-xs text-muted-foreground min-h-[28px]">
+    <div className="group/breadcrumb flex items-center gap-1.5 px-3 py-1 border-b border-border text-2xs text-muted-foreground/70 min-h-[28px]">
       <button
         className="hover:text-foreground transition-colors cursor-pointer truncate max-w-[150px]"
         onClick={() => setSelectedSessionId(null)}
@@ -38,16 +38,19 @@ export function SessionBreadcrumb() {
       >
         {projectName}
       </button>
-      <ChevronRight className="h-3 w-3 shrink-0 opacity-50" />
+      <ChevronRight className="h-3 w-3 shrink-0 opacity-40" />
       {transcriptPath ? (
         <CopyButton
           text={transcriptPath}
           label={sessionName}
           title={`Click to copy: ${transcriptPath}`}
-          className="max-w-[200px] text-foreground"
+          className="max-w-[260px] text-sm font-medium text-foreground"
         />
       ) : (
-        <span className="text-foreground truncate max-w-[200px]" title={selectedSessionId}>
+        <span
+          className="text-sm font-medium text-foreground truncate max-w-[260px]"
+          title={selectedSessionId}
+        >
           {sessionName}
         </span>
       )}
