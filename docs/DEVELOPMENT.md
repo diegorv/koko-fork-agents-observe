@@ -37,6 +37,47 @@ In dev mode, client and server run as separate processes on separate ports. In p
 | `just open` | Open dashboard in browser |
 | `just cli <cmd>` | Run CLI directly |
 
+## Testing local changes
+
+Two ways to run your code, depending on what you're iterating on.
+
+### A) Hot-reload dev mode (recommended for UI work)
+
+```bash
+just stop      # free port 4981 if a container is running
+just dev       # API on :4981, Vite client on :5174 (HMR)
+```
+
+Open <http://localhost:5174>. Edits to `app/client/**` reload instantly; edits to `app/server/**` restart the API process. Same SQLite DB at `./data` as the container, so existing events show up immediately.
+
+When done, restore the production container:
+
+```bash
+just start     # boots the docker image again on :4981
+```
+
+### B) Rebuild and run the production container
+
+Use this to verify the bundled prod build (minified client, served by the server on a single port).
+
+```bash
+just build     # rebuild docker image with current source
+just restart   # swap the running container
+```
+
+`just start` / `just restart` reuse whatever image tag `AGENTS_OBSERVE_DOCKER_IMAGE` points at — they do **not** rebuild. If your code changes don't appear after `just restart`, you forgot `just build`.
+
+After rebuilding, hard-refresh the browser (Cmd+Shift+R on macOS) to bust the cached JS bundle.
+
+### Which one?
+
+| Change | Use |
+|---|---|
+| React component / styles / client logic | `just dev` |
+| Hono routes / SQLite / WebSocket handler | `just dev` (server hot-restarts too) |
+| Dockerfile / startup env / multi-arch behaviour | `just build` + `just restart` |
+| Release verification before tagging | `just build` + `just restart` + `scripts/test-fresh-install.sh` |
+
 ## Project Structure
 
 ```
