@@ -16,7 +16,7 @@
     "check": "npm test && npm run fmt"
   },
   "devDependencies": {
-    "@types/bun": "^1.3.11",
+    "@types/bun": "^1.3.14",
     "vitest": "^4.1.6"
   }
 }
