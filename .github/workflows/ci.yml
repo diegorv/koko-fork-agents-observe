@@ -4,15 +4,22 @@ permissions:
   contents: read
 
 # Triggers:
+#   - push: main — every accepted commit revalidates on the merged SHA.
+#     This fork has no nightly workflow that re-runs CI on main, so the
+#     push trigger is the only post-merge signal that the tree stays
+#     green (e.g. after a merge conflict resolution, a hot-fix pushed
+#     directly to main, or a Dependabot bump auto-merged via squash).
 #   - pull_request: gate every PR against main before merge.
 #   - workflow_dispatch: manual revalidation.
-#   - workflow_call: invoked by run-all.yml for the manual full sweep.
+#   - workflow_call: invoked by other workflows if/when run-all lands.
 #
-# `push: main` is intentionally NOT a trigger. Merge gating already
-# runs CI on the PR; re-running on the merge SHA only duplicates work
-# in the same concurrency group and produces self-cancelled flake-
-# looking history. Tag pushes are owned end-to-end by release.yml.
+# The shared `ci-${{ github.ref }}` concurrency group keeps PR + push
+# runs from racing. Tag pushes are owned end-to-end by release.yml.
 on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**/*.md"
   pull_request:
     branches: [main]
     paths-ignore:
