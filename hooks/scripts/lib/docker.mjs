@@ -157,15 +157,22 @@ export async function startServer(config, log = console) {
   // -- Fresh start: pull + run ------------------------------------
 
   // Pull image (skipped in test harness when AGENTS_OBSERVE_TEST_SKIP_PULL=1)
-  if (!config.testSkipPull) {
-    log.info('Pulling image and starting container...')
-    const pullResult = await run('docker', ['pull', config.dockerImage])
-    if (!pullResult.ok) {
-      log.error(`Failed to pull image: ${pullResult.stderr}`)
-      return null
-    }
-  } else {
+  // Also skipped when image already exists locally — supports locally-built
+  // tags like `agents-observe:local` that aren't published to any registry.
+  if (config.testSkipPull) {
     log.info('AGENTS_OBSERVE_TEST_SKIP_PULL=1 — skipping docker pull (test harness)')
+  } else {
+    const inspect = await run('docker', ['image', 'inspect', config.dockerImage])
+    if (inspect.ok) {
+      log.info(`Image ${config.dockerImage} found locally — skipping docker pull`)
+    } else {
+      log.info('Pulling image and starting container...')
+      const pullResult = await run('docker', ['pull', config.dockerImage])
+      if (!pullResult.ok) {
+        log.error(`Failed to pull image: ${pullResult.stderr}`)
+        return null
+      }
+    }
   }
 
   // Build docker run args from centralized server env
@@ -192,14 +199,21 @@ export async function startServer(config, log = console) {
     ]
   }
 
+  // Publish host (default 127.0.0.1 — see config.dockerPublishHost).
+  // Format: `<host>:<hostPort>:<containerPort>` restricts publish to that interface.
+  const publishHost = config.dockerPublishHost || '127.0.0.1'
+
   // Try preferred port, fall back to auto-assign
-  let runResult = await run('docker', dockerRunArgs(`${preferredPort}:${containerPort}`))
+  let runResult = await run(
+    'docker',
+    dockerRunArgs(`${publishHost}:${preferredPort}:${containerPort}`),
+  )
   let actualPort = preferredPort
 
   if (!runResult.ok && runResult.stderr.includes('port is already allocated')) {
     log.warn(`Port ${preferredPort} is in use, auto-assigning a free port...`)
 
-    runResult = await run('docker', dockerRunArgs(`0:${containerPort}`))
+    runResult = await run('docker', dockerRunArgs(`${publishHost}::${containerPort}`))
 
     if (!runResult.ok) {
       log.error(`Failed to start container: ${runResult.stderr}`)

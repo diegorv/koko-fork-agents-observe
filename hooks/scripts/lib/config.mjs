@@ -140,6 +140,13 @@ export function getConfig(overrides = {}) {
       process.env.AGENTS_OBSERVE_DOCKER_CONTAINER_NAME ||
       'agents-observe',
     dockerImage,
+    // Host interface Docker publishes the container port on.
+    // Default: 127.0.0.1 — dashboard reachable from this machine only.
+    // Set AGENTS_OBSERVE_DOCKER_PUBLISH_HOST=0.0.0.0 to expose on LAN.
+    dockerPublishHost:
+      overrides.dockerPublishHost ||
+      process.env.AGENTS_OBSERVE_DOCKER_PUBLISH_HOST ||
+      '127.0.0.1',
 
     /* Local dir used to store sqlite database */
     dataDir,
