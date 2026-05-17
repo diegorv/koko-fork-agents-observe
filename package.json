@@ -1,6 +1,6 @@
 {
   "name": "koko-fork-agents-observe",
-  "version": "0.9.6",
+  "version": "0.9.7",
   "description": "Real-time observability dashboard for Claude Code agents — hardened fork of simple10/agents-observe",
   "license": "MIT",
   "repository": "https://github.com/diegorv/koko-fork-agents-observe",
