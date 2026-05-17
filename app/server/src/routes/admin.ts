@@ -1,9 +1,24 @@
 // app/server/src/routes/admin.ts
 import { Hono } from 'hono'
 import { copyFileSync, statSync } from 'fs'
+import { basename, dirname, extname, join, resolve } from 'path'
 import type { EventStore } from '../storage/types'
 import { apiError } from '../errors'
 import { config } from '../config'
+
+/** Build the backup file path beside the live DB regardless of suffix.
+ *  The previous implementation called `dbPath.replace(/\.db$/, ...)`. When
+ *  `dbPath` lacked a `.db` suffix, `replace` returned the input unchanged,
+ *  and `copyFileSync(dbPath, backupPath)` copied the file onto itself
+ *  — corrupting the live database. This helper is exported for tests. */
+export function buildBackupPath(dbPath: string, timestamp: string): string {
+  const dir = dirname(dbPath)
+  const ext = extname(dbPath) // includes the leading dot, or '' if none
+  const stem = basename(dbPath, ext)
+  const suffix = ext === '.db' ? '' : ext // preserve any non-.db suffix
+  const backupName = `${stem}${suffix}-${timestamp}.bak.db`
+  return join(dir, backupName)
+}
 
 type Env = { Variables: { store: EventStore } }
 
@@ -106,7 +121,15 @@ router.delete('/data', async (c) => {
   if (policy === 'backup') {
     const dbPath = config.dbPath
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-    const backupPath = dbPath.replace(/\.db$/, `-${timestamp}.bak.db`)
+    const backupPath = buildBackupPath(dbPath, timestamp)
+    // Defensive: must never overwrite the live DB. resolve() normalises
+    // both sides so a relative dbPath cannot slip through.
+    if (resolve(backupPath) === resolve(dbPath)) {
+      console.error('[admin] Refusing to overwrite live DB with backup', { dbPath, backupPath })
+      return apiError(c, 500, 'Failed to create database backup before reset', {
+        code: 'BACKUP_PATH_COLLISION',
+      })
+    }
     try {
       copyFileSync(dbPath, backupPath)
       console.log(`[admin] Database backed up to ${backupPath}`)

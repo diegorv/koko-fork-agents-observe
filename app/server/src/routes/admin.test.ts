@@ -1,6 +1,40 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { Hono } from 'hono'
+import { mkdtempSync, writeFileSync, readdirSync, readFileSync, existsSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import type { EventStore } from '../storage/types'
+import { buildBackupPath } from './admin'
+
+describe('buildBackupPath', () => {
+  test('appends timestamp before .db suffix for *.db paths', () => {
+    const out = buildBackupPath('/tmp/observe.db', '2026-05-17T00-00-00-000Z')
+    expect(out).toBe('/tmp/observe-2026-05-17T00-00-00-000Z.bak.db')
+    expect(out).not.toBe('/tmp/observe.db')
+  })
+
+  test('still produces a distinct path when input has no .db suffix', () => {
+    const input = '/tmp/observe'
+    const out = buildBackupPath(input, '2026-05-17T00-00-00-000Z')
+    expect(out).not.toBe(input)
+    expect(out.endsWith('.bak.db')).toBe(true)
+  })
+
+  test('preserves a non-.db extension before appending the suffix', () => {
+    const input = '/tmp/observe.sqlite'
+    const out = buildBackupPath(input, 'T')
+    expect(out).not.toBe(input)
+    expect(out.endsWith('.bak.db')).toBe(true)
+    // Original extension should still appear in the stem so the backup is
+    // recognisable next to the source.
+    expect(out).toContain('observe.sqlite')
+  })
+
+  test('places the backup beside the source file', () => {
+    const out = buildBackupPath('/var/data/observe.db', 'T')
+    expect(out.startsWith('/var/data/')).toBe(true)
+  })
+})
 
 type Env = {
   Variables: {
@@ -137,6 +171,75 @@ describe('admin routes — DELETE /data policy', () => {
     const res = await app.request('/api/data', { method: 'DELETE' })
     expect(res.status).toBe(200)
     expect(mockStore.clearAllData).toHaveBeenCalled()
+  })
+})
+
+describe('admin routes — DELETE /data with backup policy (filesystem)', () => {
+  const mockStore = { clearAllData: vi.fn() }
+
+  async function buildAppWithDbAt(dbPath: string) {
+    vi.resetModules()
+    vi.doMock('../config', () => ({
+      config: { allowDbReset: 'backup', dbPath },
+    }))
+    const { default: adminRouter } = await import('./admin')
+    const app = new Hono<Env>()
+    app.use('*', async (c, next) => {
+      c.set('store', mockStore as unknown as EventStore)
+      c.set('broadcastToAll', vi.fn())
+      c.set('broadcastToSession', vi.fn())
+      await next()
+    })
+    app.route('/api', adminRouter)
+    return app
+  }
+
+  test('with a .db-suffixed dbPath: backup is created beside the source and source survives', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'admin-backup-db-'))
+    const dbPath = join(dir, 'observe.db')
+    const dbContents = 'SQLITE-FAKE-CONTENT-' + Math.random()
+    writeFileSync(dbPath, dbContents)
+    mockStore.clearAllData.mockResolvedValue({ projects: 0, sessions: 0, agents: 0, events: 0 })
+
+    const app = await buildAppWithDbAt(dbPath)
+    const res = await app.request('/api/data', { method: 'DELETE' })
+    expect(res.status).toBe(200)
+
+    // Source file must still exist with original contents (we didn't delete it,
+    // just clearAllData on the in-memory mock — the live DB file is left
+    // alone since the store is mocked).
+    expect(existsSync(dbPath)).toBe(true)
+    expect(readFileSync(dbPath, 'utf8')).toBe(dbContents)
+
+    // A *.bak.db neighbor should have been created with the same contents.
+    const backups = readdirSync(dir).filter((f) => f.endsWith('.bak.db'))
+    expect(backups.length).toBe(1)
+    const backupContents = readFileSync(join(dir, backups[0]!), 'utf8')
+    expect(backupContents).toBe(dbContents)
+  })
+
+  test('with a bare (no .db) dbPath: backup goes to a distinct file, source not overwritten', async () => {
+    // This is the regression case: the previous implementation called
+    // `dbPath.replace(/\.db$/, '-...bak.db')` which returned the input
+    // unchanged when the suffix was missing, then copyFileSync would have
+    // copied the file onto itself.
+    const dir = mkdtempSync(join(tmpdir(), 'admin-backup-bare-'))
+    const dbPath = join(dir, 'observe') // NB: no `.db` suffix
+    const dbContents = 'BARE-' + Math.random()
+    writeFileSync(dbPath, dbContents)
+    mockStore.clearAllData.mockResolvedValue({ projects: 0, sessions: 0, agents: 0, events: 0 })
+
+    const app = await buildAppWithDbAt(dbPath)
+    const res = await app.request('/api/data', { method: 'DELETE' })
+    expect(res.status).toBe(200)
+
+    expect(existsSync(dbPath)).toBe(true)
+    expect(readFileSync(dbPath, 'utf8')).toBe(dbContents)
+
+    const backups = readdirSync(dir).filter((f) => f !== 'observe')
+    expect(backups.length).toBe(1)
+    expect(backups[0]!.endsWith('.bak.db')).toBe(true)
+    expect(readFileSync(join(dir, backups[0]!), 'utf8')).toBe(dbContents)
   })
 })
 
