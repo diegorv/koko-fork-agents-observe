@@ -213,7 +213,7 @@ export function useWebSocket(sessionId: string | null) {
       if (wsRef.current && wsRef.current.readyState <= WebSocket.OPEN) return
 
       try {
-        const ws = new WebSocket(WS_URL)
+        const ws = new WebSocket(WS_URL) // privacy-ok: WS_URL points at local docker server
         wsRef.current = ws
 
         ws.onopen = () => {

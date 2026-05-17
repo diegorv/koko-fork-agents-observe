@@ -1,8 +1,8 @@
 // hooks/scripts/lib/http.mjs
 // HTTP helpers for Agents Observe. No dependencies - Node.js built-ins only.
 
-import { request } from 'node:http'
-import { request as httpsRequest } from 'node:https'
+import { request } from 'node:http' // privacy-ok: local-only HTTP client (talks to 127.0.0.1:4981)
+import { request as httpsRequest } from 'node:https' // privacy-ok: same helper, callers pass local URLs
 
 // Auto timeout requests if they don't return in 5 seconds
 const HTTP_DEFAULT_TIMEOUT = 5000

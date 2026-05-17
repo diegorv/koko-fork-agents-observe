@@ -24,7 +24,7 @@ let pending: Promise<ServerHealth | null> | null = null
 
 export function getServerHealth(): Promise<ServerHealth | null> {
   if (!pending) {
-    pending = fetch(`${API_BASE}/health`)
+    pending = fetch(`${API_BASE}/health`) // privacy-ok: API_BASE points at local docker server
       .then((r) => (r.ok ? (r.json() as Promise<ServerHealth>) : null))
       .catch(() => null)
   }

@@ -34,8 +34,8 @@ const HOST = config.bindHost
 
 function start(retries = 3) {
   const server = serve({ fetch: app.fetch, port: PORT, hostname: HOST }, () => {
-    console.log(`Server running on http://${HOST}:${PORT}`)
-    console.log(`POST events: http://${HOST}:${PORT}/api/events`)
+    console.log(`Server running on http://${HOST}:${PORT}`) // privacy-ok: server self-log, not an outbound call
+    console.log(`POST events: http://${HOST}:${PORT}/api/events`) // privacy-ok: server self-log, not an outbound call
     if (HOST !== '0.0.0.0' && HOST !== '127.0.0.1' && HOST !== 'localhost') {
       console.log(`Bound to custom host: ${HOST}`)
     } else if (HOST === '0.0.0.0') {

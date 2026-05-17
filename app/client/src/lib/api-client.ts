@@ -50,7 +50,7 @@ async function parseErrorBody(res: Response): Promise<string | undefined> {
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response
   try {
-    res = await fetch(`${API_BASE}${path}`, init)
+    res = await fetch(`${API_BASE}${path}`, init) // privacy-ok: API_BASE points at local docker server
   } catch (err) {
     // Network failure (server down, CORS, DNS, etc.)
     const message = err instanceof Error ? err.message : 'Network error'
@@ -73,7 +73,7 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
 async function fetchVoid(path: string, init?: RequestInit): Promise<void> {
   let res: Response
   try {
-    res = await fetch(`${API_BASE}${path}`, init)
+    res = await fetch(`${API_BASE}${path}`, init) // privacy-ok: API_BASE points at local docker server
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Network error'
     throw new ApiError(0, path, `Network error: ${message}`)

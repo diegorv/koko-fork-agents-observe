@@ -1,0 +1,68 @@
+name: CI
+
+permissions:
+  contents: read
+
+# Triggers:
+#   - pull_request: gate every PR against main before merge.
+#   - workflow_dispatch: manual revalidation.
+#   - workflow_call: invoked by run-all.yml for the manual full sweep.
+#
+# `push: main` is intentionally NOT a trigger. Merge gating already
+# runs CI on the PR; re-running on the merge SHA only duplicates work
+# in the same concurrency group and produces self-cancelled flake-
+# looking history. Tag pushes are owned end-to-end by release.yml.
+on:
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - "**/*.md"
+  workflow_dispatch:
+  workflow_call:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  test:
+    name: Test + format + build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Install root dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Install server dependencies
+        run: cd app/server && npm install --no-audit --no-fund
+
+      - name: Install client dependencies
+        run: cd app/client && npm install --no-audit --no-fund
+
+      - name: Run tests (scripts + server + client)
+        run: npm test
+
+      # `npm run fmt` writes formatted output; CI re-runs prettier with
+      # `--check` against the same globs so a PR with unformatted code
+      # fails before merge instead of silently being reformatted later.
+      - name: Check formatting
+        run: |
+          npx prettier --check \
+            'app/server/src/**/*.ts' \
+            'app/client/src/**/*.{ts,tsx}' \
+            'hooks/scripts/**/*.mjs' \
+            'test/**/*.mjs' \
+            'start.mjs'
+
+      - name: Build client bundle
+        run: cd app/client && npm run build

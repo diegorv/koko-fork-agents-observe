@@ -1,0 +1,197 @@
+name: Privacy
+
+# Fork's hermeticity gate. The plugin's runtime should only talk to the
+# local Docker container at 127.0.0.1:4981 — no telemetry, no analytics,
+# no remote APIs. This workflow greps every runtime source tree for
+# HTTP / WebSocket / outbound-network patterns and fails on any match
+# that isn't covered by an allow rule (localhost / 127.0.0.1) or an
+# inline `// privacy-ok` opt-out.
+#
+# Scope intentionally excludes `scripts/` (developer tooling like
+# check-hooks.ts fetches public docs) and `test/` (test fixtures).
+# Those are not shipped to plugin users so they're outside the
+# fork's privacy promise.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "hooks/scripts/**"
+      - "app/server/src/**"
+      - "app/client/src/**"
+      - "start.mjs"
+      - ".github/workflows/privacy.yml"
+      - ".github/actions/scan-external-calls/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "hooks/scripts/**"
+      - "app/server/src/**"
+      - "app/client/src/**"
+      - "start.mjs"
+      - ".github/workflows/privacy.yml"
+      - ".github/actions/scan-external-calls/**"
+  workflow_dispatch:
+  # Reusable: invoked by run-all.yml.
+  workflow_call:
+
+concurrency:
+  group: privacy-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  scan-external-calls:
+    name: Scan for External Calls
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Hook + CLI runtime (Node ESM) ────────────────────────────────
+      - uses: ./.github/actions/scan-external-calls
+        with:
+          language-label: Hooks/CLI (Node ESM)
+          root: hooks/scripts
+          include-globs: "*.mjs,*.js,*.ts"
+          patterns: |
+            # Native APIs (constructors only — bare names match user fns)
+            fetch\s*\(
+            \bnew\s+XMLHttpRequest\b
+            navigator\.sendBeacon
+            \bnew\s+WebSocket\s*\(
+            \bnew\s+EventSource\s*\(
+            \.open\s*\(\s*["\x27](?:GET|POST|PUT|DELETE|PATCH)
+            # Node http/https/net runtime imports
+            from\s+["\x27](?:node:)?https?["\x27]
+            require\s*\(\s*["\x27](?:node:)?https?["\x27]\)
+            from\s+["\x27](?:node:)?net["\x27]
+            require\s*\(\s*["\x27](?:node:)?net["\x27]\)
+            # HTTP libraries (import/require)
+            import.*\b(axios|got|node-fetch|ky|superagent|undici|needle|request)\b
+            require\s*\(\s*["\x27](axios|got|node-fetch|ky|superagent|undici|needle|request)["\x27]\)
+            # Hardcoded URLs
+            https?://
+          skip: |
+            \.test\.mjs
+            \.test\.ts
+            \.spec\.mjs
+            \.spec\.ts
+            node_modules
+            localhost
+            127\.0\.0\.1
+            privacy-ok
+            # Comment lines
+            :\s*//
+            :\s*\*
+            :\s*/\*
+            # Type-only imports are erased at compile time
+            import\s+type\s
+            # docs.docker.com appears only in install-error help text
+            docs\.docker\.com
+
+      # ── Server runtime (TypeScript) ──────────────────────────────────
+      - uses: ./.github/actions/scan-external-calls
+        with:
+          language-label: Server (TypeScript)
+          root: app/server/src
+          include-globs: "*.ts"
+          patterns: |
+            fetch\s*\(
+            \bnew\s+XMLHttpRequest\b
+            navigator\.sendBeacon
+            \bnew\s+WebSocket\s*\(
+            \bnew\s+EventSource\s*\(
+            \.open\s*\(\s*["\x27](?:GET|POST|PUT|DELETE|PATCH)
+            from\s+["\x27](?:node:)?https?["\x27]
+            require\s*\(\s*["\x27](?:node:)?https?["\x27]\)
+            from\s+["\x27](?:node:)?net["\x27]
+            require\s*\(\s*["\x27](?:node:)?net["\x27]\)
+            import.*\b(axios|got|node-fetch|ky|superagent|undici|needle|request)\b
+            require\s*\(\s*["\x27](axios|got|node-fetch|ky|superagent|undici|needle|request)["\x27]\)
+            https?://
+          skip: |
+            \.test\.ts
+            \.spec\.ts
+            node_modules
+            localhost
+            127\.0\.0\.1
+            privacy-ok
+            :\s*//
+            :\s*\*
+            :\s*/\*
+            import\s+type\s
+
+      # ── Root entrypoint (start.mjs) ───────────────────────────────────
+      # Thin local launcher (no Docker). Scoped scan keeps the workflow's
+      # promise — "every runtime file in the fork is hermetic" — honest.
+      - uses: ./.github/actions/scan-external-calls
+        with:
+          language-label: Root entrypoint (start.mjs)
+          root: .
+          include-globs: "start.mjs"
+          patterns: |
+            fetch\s*\(
+            \bnew\s+XMLHttpRequest\b
+            \bnew\s+WebSocket\s*\(
+            \bnew\s+EventSource\s*\(
+            from\s+["\x27](?:node:)?https?["\x27]
+            require\s*\(\s*["\x27](?:node:)?https?["\x27]\)
+            from\s+["\x27](?:node:)?net["\x27]
+            require\s*\(\s*["\x27](?:node:)?net["\x27]\)
+            import.*\b(axios|got|node-fetch|ky|superagent|undici|needle|request)\b
+            require\s*\(\s*["\x27](axios|got|node-fetch|ky|superagent|undici|needle|request)["\x27]\)
+            https?://
+          skip: |
+            node_modules
+            localhost
+            127\.0\.0\.1
+            privacy-ok
+            :\s*//
+            :\s*\*
+            :\s*/\*
+            import\s+type\s
+
+      # ── Browser runtime (TypeScript / React) ──────────────────────────
+      - uses: ./.github/actions/scan-external-calls
+        with:
+          language-label: Client (TypeScript/React)
+          root: app/client/src
+          include-globs: "*.ts,*.tsx,*.js,*.jsx"
+          patterns: |
+            fetch\s*\(
+            \bnew\s+XMLHttpRequest\b
+            navigator\.sendBeacon
+            \bnew\s+WebSocket\s*\(
+            \bnew\s+EventSource\s*\(
+            \.open\s*\(\s*["\x27](?:GET|POST|PUT|DELETE|PATCH)
+            RTCPeerConnection
+            navigator\.geolocation
+            script\.src\s*=
+            iframe\.src\s*=
+            new\s+Image\s*\(.*\.src\s*=
+            new\s+Worker\s*\(
+            new\s+SharedWorker\s*\(
+            ServiceWorker\.register
+            import.*\b(axios|got|node-fetch|ky|superagent|undici|needle|request)\b
+            require\s*\(\s*["\x27](axios|got|node-fetch|ky|superagent|undici|needle|request)["\x27]\)
+            https?://
+          skip: |
+            \.test\.ts
+            \.test\.tsx
+            \.spec\.ts
+            \.spec\.tsx
+            node_modules
+            localhost
+            127\.0\.0\.1
+            privacy-ok
+            :\s*//
+            :\s*\*
+            :\s*/\*
+            import\s+type\s
+            # SVG / XML namespace declarations are not network calls
+            w3\.org
+            # Schema URLs in JSDoc / type annotations are not runtime calls
+            json-schema\.org
