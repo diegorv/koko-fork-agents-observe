@@ -1,5 +1,23 @@
 # Changelog
 
+## v1.0.2 — Dashboard UX polish
+
+Front-end-only release. Reworks typography, the dark theme, and the session header so the dashboard is easier to read in long sessions, then reorders the session view so timeline, filters, search, and the event stream line up in a clearer reading order. No server, hook, or wire-format changes.
+
+### Features
+
+- New users open the dashboard in light mode by default; an explicit choice (light, dark, or system) is still respected via `localStorage`.
+- The event stream renders newest events at the top. Auto-follow now keeps the latest event pinned to the row instead of scrolling to the bottom.
+- A dedicated event search component lives next to the event count and time-range readout so search visibly narrows the row count it sits beside.
+
+### Other
+
+- Dark theme: flat black background replaced with #24252f (warmer near-black), sidebar shifted to #1d1e27, and the surfaces that vanished against the new background (border, accent, muted, secondary, ring) lifted to colors that hold contrast — so row hover states and separators are visible again.
+- Typography pass: ~115 hard-coded `text-[9px]` / `text-[10px]` / `text-[11px]` utilities collapsed into a single `text-2xs` token (0.7 rem), `--text-xs` lowered to 0.82 rem, and the redundant `font-medium` on event-row type labels dropped — leaving two consistent sizes and a single dominant weight per row.
+- Session header rebuilt: the breadcrumb now promotes the session id as the visual subject (project and cwd recede), the breadcrumb / agent picker / tool icons / Dedup toggle collapse into a single 40 px row, and the filter bar moves under the activity timeline so timeline → filters → events reads top-to-bottom.
+- Event rows centered: row padding bumped to `py-2`, the separator opacity raised, and the agent label promoted to an absolutely-positioned top-left badge so the row body sits vertically centered with or without it.
+- Documentation: new "Testing local changes" section in `docs/DEVELOPMENT.md` covering the `just dev` hot-reload path versus the `just build` + `just restart` container path, plus the common "I forgot to rebuild" gotcha.
+
 ## v1.0.1 — Dependency refresh
 
 Brings every direct dependency to its current latest within the existing major. No source-code changes; each bump shipped as a separate commit with the full test suite (802 tests) green before commit.
