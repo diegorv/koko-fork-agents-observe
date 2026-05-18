@@ -58,7 +58,7 @@ export const config = {
     ] ?? ('deny' as const),
 
   // Auto-shutdown: <= 0 disables, > 0 is delay in ms after last consumer disconnects
-  shutdownDelayMs: parseInt(process.env.AGENTS_OBSERVE_SHUTDOWN_DELAY_MS || '30000', 10),
+  shutdownDelayMs: parseInt(process.env.AGENTS_OBSERVE_SHUTDOWN_DELAY_MS || '1800000', 10),
   // Consumer tracker tuning
   consumerTtlMs: 30_000,
   sweepIntervalMs: 10_000,
