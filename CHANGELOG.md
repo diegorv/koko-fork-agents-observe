@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.0.3 — Longer default auto-shutdown
+
+Server now stays alive for 30 minutes after the last consumer or browser tab disconnects, up from 30 seconds. Short context-switches and idle browser tabs no longer trip the shutdown timer and force a cold restart the next time the dashboard is opened.
+
+### Other
+
+- Default `AGENTS_OBSERVE_SHUTDOWN_DELAY_MS` raised from `30000` to `1800000` in both the hook CLI and the server. Override via env (e.g. `AGENTS_OBSERVE_SHUTDOWN_DELAY_MS=0` to disable auto-shutdown entirely).
+
 ## v1.0.2 — Dashboard UX polish
 
 Front-end-only release. Reworks typography, the dark theme, and the session header so the dashboard is easier to read in long sessions, then reorders the session view so timeline, filters, search, and the event stream line up in a clearer reading order. No server, hook, or wire-format changes.
