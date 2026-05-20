@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useFilterStore } from '@/stores/filter-store'
 import { useFilterDraftStore, type FilterDraft } from '@/stores/filter-draft-store'
@@ -7,6 +7,7 @@ import { RE2JS } from 're2js'
 import { applyFilters } from '@/lib/filters/matcher'
 import { flagsStringToRE2, wrapWithAnchor } from '@/lib/filters/compile'
 import type { CompiledFilter } from '@/lib/filters/types'
+import { ALL_FILTER_ID } from '@/lib/filters/all-filter'
 import { ColorPicker } from './color-picker'
 import { COLOR_PRESETS } from '@/hooks/use-icon-customizations'
 import type { Filter, ParsedEvent } from '@/types'
@@ -108,6 +109,10 @@ export function FiltersTab() {
   // the dashboard. Within each group, user filters sort above defaults
   // (and then by name) so newly-created filters are easy to find.
   const sortPillish = (a: Filter, b: Filter) => {
+    // The All filter is always at the top — it controls dashboard-wide
+    // event visibility and is the most-edited default.
+    if (a.id === ALL_FILTER_ID) return -1
+    if (b.id === ALL_FILTER_ID) return 1
     const ku = a.kind === 'user' ? 0 : 1
     const kv = b.kind === 'user' ? 0 : 1
     if (ku !== kv) return ku - kv
@@ -138,13 +143,20 @@ export function FiltersTab() {
               <div className="px-2 py-1 text-muted-foreground italic">(None)</div>
             ) : (
               primaryFilters.map((f) => (
-                <Row
-                  key={f.id}
-                  f={effective(f)}
-                  selected={selectedId === f.id}
-                  modified={drafts.has(f.id)}
-                  onSelect={() => setSelectedId(f.id)}
-                />
+                <Fragment key={f.id}>
+                  {f.id === ALL_FILTER_ID && (
+                    <p className="px-2 py-1 text-[10px] text-muted-foreground italic">
+                      Hides events from the timeline and event stream. Excluded events still
+                      appear in raw logs.
+                    </p>
+                  )}
+                  <Row
+                    f={effective(f)}
+                    selected={selectedId === f.id}
+                    modified={drafts.has(f.id)}
+                    onSelect={() => setSelectedId(f.id)}
+                  />
+                </Fragment>
               ))
             )}
           </Section>
@@ -401,6 +413,11 @@ function FilterEditor({
     setDraft({ config: nextConfig })
   }
 
+  // The All filter expresses event-visibility exclusions, not a pill
+  // category. Its UI hides controls that don't apply (display row,
+  // combinator, color) and defaults new patterns to `negate: true`.
+  const isAllFilter = filter.id === ALL_FILTER_ID
+
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   // Which pattern rows have their "Advanced" panel expanded. Stored by
   // index — patterns don't have stable ids and the array is short, so
@@ -539,34 +556,38 @@ function FilterEditor({
                 className="font-mono text-xs"
               />
             </div>
-            <div>
-              <label className="text-xs uppercase text-muted-foreground">Display</label>
-              <div className="flex h-9 border border-input rounded-md text-xs overflow-hidden">
-                {(['primary', 'secondary'] as const).map((d) => {
-                  const isActive = display === d
-                  const activeClass =
-                    d === 'primary'
-                      ? 'bg-orange-500/20 text-orange-700 dark:text-orange-400'
-                      : 'bg-blue-500/20 text-blue-700 dark:text-blue-300'
-                  return (
-                    <button
-                      key={d}
-                      onClick={() => setDraft({ display: d })}
-                      className={cn(
-                        'flex-1 flex items-center justify-center px-3',
-                        isActive ? activeClass : 'bg-transparent',
-                      )}
-                    >
-                      {d === 'primary' ? 'Primary' : 'Secondary'}
-                    </button>
-                  )
-                })}
+            {!isAllFilter && (
+              <div>
+                <label className="text-xs uppercase text-muted-foreground">Display</label>
+                <div className="flex h-9 border border-input rounded-md text-xs overflow-hidden">
+                  {(['primary', 'secondary'] as const).map((d) => {
+                    const isActive = display === d
+                    const activeClass =
+                      d === 'primary'
+                        ? 'bg-orange-500/20 text-orange-700 dark:text-orange-400'
+                        : 'bg-blue-500/20 text-blue-700 dark:text-blue-300'
+                    return (
+                      <button
+                        key={d}
+                        onClick={() => setDraft({ display: d })}
+                        className={cn(
+                          'flex-1 flex items-center justify-center px-3',
+                          isActive ? activeClass : 'bg-transparent',
+                        )}
+                      >
+                        {d === 'primary' ? 'Primary' : 'Secondary'}
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
-            </div>
-            <div className="text-right">
-              <label className="text-xs uppercase text-muted-foreground">Color</label>
-              <CssColorPicker value={colorValue} onChange={setColor} />
-            </div>
+            )}
+            {!isAllFilter && (
+              <div className="text-right">
+                <label className="text-xs uppercase text-muted-foreground">Color</label>
+                <CssColorPicker value={colorValue} onChange={setColor} />
+              </div>
+            )}
           </div>
           {/* Help text spans the full row below all three columns so neither
               caption wraps. Vars hint is left-aligned under Pill name; the
@@ -583,22 +604,28 @@ function FilterEditor({
 
           <div className="mt-4 flex items-center gap-3">
             <label className="text-xs uppercase text-muted-foreground">Patterns</label>
-            <span className="text-xs text-muted-foreground">·</span>
-            <span className="text-xs text-muted-foreground">combine with:</span>
-            <div className="flex border rounded text-[10px] overflow-hidden">
-              {(['and', 'or'] as const).map((c) => (
-                <button
-                  key={c}
-                  onClick={() => setDraft({ combinator: c })}
-                  className={cn(
-                    'px-2 py-1',
-                    combinator === c ? 'bg-muted-foreground text-background' : 'bg-transparent',
-                  )}
-                >
-                  {c.toUpperCase()}
-                </button>
-              ))}
-            </div>
+            {!isAllFilter && (
+              <>
+                <span className="text-xs text-muted-foreground">·</span>
+                <span className="text-xs text-muted-foreground">combine with:</span>
+                <div className="flex border rounded text-[10px] overflow-hidden">
+                  {(['and', 'or'] as const).map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setDraft({ combinator: c })}
+                      className={cn(
+                        'px-2 py-1',
+                        combinator === c
+                          ? 'bg-muted-foreground text-background'
+                          : 'bg-transparent',
+                      )}
+                    >
+                      {c.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
           <div className="flex flex-col gap-3 mt-2">
@@ -751,7 +778,16 @@ function FilterEditor({
           <button
             type="button"
             className="self-start mt-2 px-2 py-1 text-[10px] rounded border border-muted-foreground/30 text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-colors"
-            onClick={() => setDraft({ patterns: [...patterns, { target: 'hook', regex: '' }] })}
+            onClick={() =>
+              setDraft({
+                patterns: [
+                  ...patterns,
+                  isAllFilter
+                    ? { target: 'hook', regex: '', negate: true }
+                    : { target: 'hook', regex: '' },
+                ],
+              })
+            }
           >
             + Add pattern
           </button>
