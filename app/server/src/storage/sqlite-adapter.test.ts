@@ -1528,6 +1528,22 @@ describe('filters', () => {
     expect(second?.enabled).toBe(false)
   })
 
+  test('seedDefaultFilters inserts the default-all exclusion row', async () => {
+    const adapter = new SqliteAdapter(':memory:')
+    await adapter.seedDefaultFilters()
+    const all = await adapter.getFilterById('default-all')
+    expect(all).not.toBeNull()
+    expect(all?.name).toBe('All')
+    expect(all?.pillName).toBe('All')
+    expect(all?.kind).toBe('default')
+    expect(all?.enabled).toBe(true)
+    expect(all?.combinator).toBe('and')
+    expect(all?.patterns).toEqual([
+      { target: 'hook', regex: '^PostToolBatch$', negate: true },
+    ])
+    expect(all?.config).toEqual({ role: 'all-exclusions' })
+  })
+
   test('resetDefaultFilters reapplies seed content but preserves enabled', async () => {
     const adapter = new SqliteAdapter(':memory:')
     await adapter.seedDefaultFilters()

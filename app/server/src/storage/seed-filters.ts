@@ -19,6 +19,15 @@ export interface SeedFilter {
 
 export const SEED_FILTERS: SeedFilter[] = [
   {
+    id: 'default-all',
+    name: 'All',
+    pillName: 'All',
+    display: 'primary',
+    combinator: 'and',
+    patterns: [{ target: 'hook', regex: '^PostToolBatch$', negate: true }],
+    config: { role: 'all-exclusions' },
+  },
+  {
     id: 'default-dynamic-tool-name',
     name: 'Dynamic tool name',
     pillName: '{toolName}',
