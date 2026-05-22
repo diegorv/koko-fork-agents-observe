@@ -57,4 +57,15 @@ export const config = {
   consumerTtlMs: 30_000,
   sweepIntervalMs: 10_000,
   startupGraceMs: 60_000,
+
+  transcriptStats: {
+    enabled: process.env.AGENTS_OBSERVE_TRANSCRIPT_STATS === '1',
+    // Strip a single trailing slash on the host base at boot — defensive
+    // against users who export HOME with a trailing slash. The runtime
+    // comparison expects no trailing slash.
+    hostBase: (process.env.AGENTS_OBSERVE_TRANSCRIPT_HOST_BASE || '').replace(/\/$/, ''),
+    containerBase: (process.env.AGENTS_OBSERVE_TRANSCRIPT_CONTAINER_BASE || '').replace(/\/$/, ''),
+    // 100 MB safety cap — defensive, not an expected operating point.
+    maxFileBytes: 100 * 1024 * 1024,
+  },
 }
