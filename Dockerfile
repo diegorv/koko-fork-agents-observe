@@ -17,7 +17,7 @@
 
 # When updating Node, verify the new digest of the base image:
 #   docker pull node:24.10-slim && docker inspect --format='{{.Id}}' node:24.10-slim
-FROM node:24.10-slim AS builder
+FROM node:26.2-slim AS builder
 
 WORKDIR /app
 
@@ -47,7 +47,7 @@ COPY package.json /package.json
 RUN cd client && npm run build
 
 # ---------- Production image ----------
-FROM node:24.10-slim
+FROM node:26.2-slim
 
 WORKDIR /app
 
