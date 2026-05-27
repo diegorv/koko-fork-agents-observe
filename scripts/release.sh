@@ -1,33 +1,70 @@
 #!/usr/bin/env bash
 # Release script for agents-observe.
-# Bumps version, generates changelog via Claude, opens editor for review,
-# then commits, tags, and pushes.
+# Auto-bumps version from latest git tag, generates changelog via Claude,
+# opens editor for review, then commits, tags, and pushes.
 #
-# Usage: scripts/release.sh [--dry-run] <version>
-#   e.g.  scripts/release.sh 0.8.0
-#         scripts/release.sh --dry-run 0.8.0
+# Usage: scripts/release.sh [--dry-run] [patch|minor|major]
+#   e.g.  scripts/release.sh           # 1.1.0 → 1.1.1
+#         scripts/release.sh minor      # 1.1.0 → 1.2.0
+#         scripts/release.sh major      # 1.1.0 → 2.0.0
+#         scripts/release.sh --dry-run minor
 
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
 
+# ── Parse args ──────────────────────────────────────────────
+
 DRY_RUN=false
-VERSION=""
+BUMP="patch"
+
 for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY_RUN=true ;;
-    *) VERSION="$arg" ;;
+    patch|minor|major) BUMP="$arg" ;;
+    -h|--help)
+      echo "Usage: $0 [--dry-run] [patch|minor|major]"
+      echo ""
+      echo "Bump types:"
+      echo "  patch  (default)  Bug fixes and small tweaks"
+      echo "                    1.1.0 → 1.1.1 → 1.1.2 ..."
+      echo ""
+      echo "  minor             New features (resets patch to 0)"
+      echo "                    1.1.2 → 1.2.0 → 1.3.0 ..."
+      echo ""
+      echo "  major             Breaking changes (resets minor and patch to 0)"
+      echo "                    1.2.0 → 2.0.0 → 3.0.0 ..."
+      exit 0
+      ;;
+    *) echo "Error: unknown argument '$arg'"; echo "Usage: $0 [--dry-run] [patch|minor|major]"; exit 1 ;;
   esac
 done
 
-if [ -z "$VERSION" ]; then
-  echo "Usage: scripts/release.sh [--dry-run] <version>  (e.g. 0.8.0)"
-  exit 1
+# ── Compute version from latest tag ────────────────────────
+
+LATEST_TAG=$(git tag --sort=-v:refname | head -1)
+
+if [ -z "$LATEST_TAG" ]; then
+  echo "No tags found. Starting from v0.1.0"
+  LATEST_TAG="v0.0.0"
 fi
 
-# Normalize: strip leading "v", then build tag
-VERSION="${VERSION#v}"
+# Strip v prefix, split into components
+CURRENT="${LATEST_TAG#v}"
+IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+
+case "$BUMP" in
+  patch) PATCH=$((PATCH + 1)) ;;
+  minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+  major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+esac
+
+VERSION="${MAJOR}.${MINOR}.${PATCH}"
 TAG="v${VERSION}"
+
+echo ""
+echo "  ${LATEST_TAG} → ${TAG} (${BUMP})"
+echo ""
 
 if git rev-parse "$TAG" >/dev/null 2>&1; then
   echo "Error: tag $TAG already exists"
@@ -107,7 +144,7 @@ if $DRY_RUN; then
   echo ""
   echo "To finish the release, revert changes and run without --dry-run:"
   echo "  git checkout -- VERSION package.json .claude-plugin/plugin.json CHANGELOG.md"
-  echo "  scripts/release.sh $VERSION"
+  echo "  scripts/release.sh $BUMP"
   exit 0
 fi
 
