@@ -23,7 +23,7 @@
     "cmdk": "^1.1.1",
     "lucide-react": "^1.16.0",
     "radix-ui": "^1.4.3",
-    "re2js": "^2.8.0",
+    "re2js": "^2.8.3",
     "react": "^19.2.6",
     "react-diff-viewer-continued": "^4.2.2",
     "react-dom": "^19.2.6",
