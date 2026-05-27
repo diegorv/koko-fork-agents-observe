@@ -51,7 +51,7 @@ export async function getModelsPricing(): Promise<Record<string, ModelPricing>> 
 
     // Stale or missing — refetch.
     try {
-      const res = await fetch(MODELS_DEV_URL)
+      const res = await fetch(MODELS_DEV_URL) // privacy-ok: optional pricing enrichment, degrades gracefully
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const body = await res.json()
       await writeDiskCache(body)
